@@ -25,8 +25,8 @@ import {
 } from 'react';
 import {
   BubbleGridMarker,
-  type DraftBlokIdentitas,
   type DraftBlokJawaban,
+  type DraftBlokNama,
 } from '../components/template/BubbleGridMarker.tsx';
 import { CornerAdjuster } from '../components/template/CornerAdjuster.tsx';
 import { ambilPengaturan } from '../db/database.ts';
@@ -57,8 +57,8 @@ import type {
 } from '../omr/types.ts';
 import {
   PENGATURAN_AWAL,
-  type BlokIdentitas,
   type BlokJawaban,
+  type BlokNama,
   type JenisPenanda,
   type TemplateLJK,
   type Titik,
@@ -78,7 +78,7 @@ const DAFTAR_LANGKAH = [
   { nomor: 2, label: 'Foto Kosong' },
   { nomor: 3, label: 'Luruskan' },
   { nomor: 4, label: 'Blok Jawaban' },
-  { nomor: 5, label: 'Identitas' },
+  { nomor: 5, label: 'Area Nama' },
   { nomor: 6, label: 'Uji & Simpan' },
 ] as const;
 
@@ -161,18 +161,14 @@ export function BuatTemplatePage({
     'pertama' | 'terakhir'
   >('pertama');
 
-  // Langkah 5: Blok identitas (opsional)
-  const [blokIdentitas, setBlokIdentitas] = useState<BlokIdentitas[]>(
-    templateAwal?.blokIdentitas ?? [],
-  );
-  const [draftIdentitas, setDraftIdentitas] = useState<DraftBlokIdentitas>({
-    kolomKe: (templateAwal?.blokIdentitas?.length ?? 0) + 1,
-    jumlahDigit: 10,
-    radiusBulatan: 11,
-    titikPertama: null,
-    titikTerakhir: null,
+  // Langkah 5: Area Nama Siswa (opsional, kisi kolom x A-Z, kosong = spasi)
+  const [draftNama, setDraftNama] = useState<DraftBlokNama>({
+    jumlahKolom: templateAwal?.blokNama?.jumlahKolom ?? 20,
+    radiusBulatan: templateAwal?.blokNama?.radiusBulatan ?? 6,
+    titikHurufAPertama: templateAwal?.blokNama?.titikHurufAPertama ?? null,
+    titikHurufZTerakhir: templateAwal?.blokNama?.titikHurufZTerakhir ?? null,
   });
-  const [targetKetukIdentitas, setTargetKetukIdentitas] = useState<
+  const [targetKetukNama, setTargetKetukNama] = useState<
     'pertama' | 'terakhir'
   >('pertama');
 
@@ -233,6 +229,18 @@ export function BuatTemplatePage({
 
   const hurufPilihanTerakhir = HURUF_PILIHAN[jumlahPilihan - 1] ?? 'E';
 
+  const blokNamaAktif: BlokNama | undefined = useMemo(() => {
+    if (!draftNama.titikHurufAPertama || !draftNama.titikHurufZTerakhir) {
+      return undefined;
+    }
+    return {
+      jumlahKolom: Math.max(1, Math.min(30, Math.round(draftNama.jumlahKolom))),
+      titikHurufAPertama: draftNama.titikHurufAPertama,
+      titikHurufZTerakhir: draftNama.titikHurufZTerakhir,
+      radiusBulatan: draftNama.radiusBulatan,
+    };
+  }, [draftNama]);
+
   const draftTemplate: TemplateLJK = useMemo(() => {
     const sekarang = new Date().toISOString();
     return {
@@ -243,7 +251,7 @@ export function BuatTemplatePage({
       ukuranStandar,
       jenisPenanda,
       blokJawaban,
-      ...(blokIdentitas.length > 0 ? { blokIdentitas } : {}),
+      ...(blokNamaAktif ? { blokNama: blokNamaAktif } : {}),
       ...(fotoLurusBlob ? { gambarContoh: fotoLurusBlob } : {}),
       tanggalDibuat: templateAwal?.tanggalDibuat ?? sekarang,
       tanggalDiubah: sekarang,
@@ -256,7 +264,7 @@ export function BuatTemplatePage({
     ukuranStandar,
     jenisPenanda,
     blokJawaban,
-    blokIdentitas,
+    blokNamaAktif,
     fotoLurusBlob,
   ]);
 
@@ -448,27 +456,27 @@ export function BuatTemplatePage({
           })),
         );
 
-        setBlokIdentitas((prev) =>
-          prev.map((k) => ({
-            ...k,
-            titikDigitPertama: {
-              x: Math.round(k.titikDigitPertama.x * skalaX),
-              y: Math.round(k.titikDigitPertama.y * skalaY),
-            },
-            titikDigitTerakhir: {
-              x: Math.round(k.titikDigitTerakhir.x * skalaX),
-              y: Math.round(k.titikDigitTerakhir.y * skalaY),
-            },
-            radiusBulatan: Math.max(5, Math.round(k.radiusBulatan * skalaR)),
-          })),
-        );
+        setDraftNama((prev) => ({
+          ...prev,
+          titikHurufAPertama: prev.titikHurufAPertama
+            ? {
+                x: Math.round(prev.titikHurufAPertama.x * skalaX),
+                y: Math.round(prev.titikHurufAPertama.y * skalaY),
+              }
+            : null,
+          titikHurufZTerakhir: prev.titikHurufZTerakhir
+            ? {
+                x: Math.round(prev.titikHurufZTerakhir.x * skalaX),
+                y: Math.round(prev.titikHurufZTerakhir.y * skalaY),
+              }
+            : null,
+          radiusBulatan: Math.max(
+            3,
+            Math.round(prev.radiusBulatan * skalaR * 2) / 2,
+          ),
+        }));
 
         setDraftJawaban((prev) => ({
-          ...prev,
-          titikPertama: null,
-          titikTerakhir: null,
-        }));
-        setDraftIdentitas((prev) => ({
           ...prev,
           titikPertama: null,
           titikTerakhir: null,
@@ -583,51 +591,59 @@ export function BuatTemplatePage({
     pindahLangkah(5);
   };
 
-  // --- Handler Langkah 5 (Blok Identitas Opsional) ---
-  const handleKetukGambarIdentitas = (titik: Titik) => {
+  // --- Handler Langkah 5 (Area Nama Siswa Opsional: A-Z, kosong = spasi) ---
+  const handleKetukGambarNama = (titik: Titik) => {
     setGalatUmum(null);
-    if (targetKetukIdentitas === 'pertama') {
-      setDraftIdentitas((prev) => ({ ...prev, titikPertama: titik }));
-      setTargetKetukIdentitas('terakhir');
+    if (targetKetukNama === 'pertama') {
+      setDraftNama((prev) => ({ ...prev, titikHurufAPertama: titik }));
+      setTargetKetukNama('terakhir');
     } else {
-      setDraftIdentitas((prev) => ({ ...prev, titikTerakhir: titik }));
+      setDraftNama((prev) => ({ ...prev, titikHurufZTerakhir: titik }));
     }
   };
 
-  const handleTambahKolomIdentitas = () => {
-    if (!draftIdentitas.titikPertama || !draftIdentitas.titikTerakhir) {
-      setGalatUmum('Ketuk dulu bulatan angka 0 dan angka 9 untuk kolom ini.');
+  const handleGeserTitikNama = (
+    target: 'pertama' | 'terakhir',
+    dx: number,
+    dy: number,
+  ) => {
+    setDraftNama((prev) => {
+      const asal =
+        target === 'pertama'
+          ? prev.titikHurufAPertama
+          : prev.titikHurufZTerakhir;
+      if (!asal) return prev;
+      const baru: Titik = {
+        x: Math.max(0, Math.min(ukuranStandar.lebar - 1, asal.x + dx)),
+        y: Math.max(0, Math.min(ukuranStandar.tinggi - 1, asal.y + dy)),
+      };
+      return target === 'pertama'
+        ? { ...prev, titikHurufAPertama: baru }
+        : { ...prev, titikHurufZTerakhir: baru };
+    });
+  };
+
+  const handleHapusAreaNama = () => {
+    setDraftNama((prev) => ({
+      ...prev,
+      titikHurufAPertama: null,
+      titikHurufZTerakhir: null,
+    }));
+    setTargetKetukNama('pertama');
+    setGalatUmum(null);
+  };
+
+  const handleLanjutDariAreaNama = () => {
+    const baruSatuTitik =
+      Boolean(draftNama.titikHurufAPertama) !==
+      Boolean(draftNama.titikHurufZTerakhir);
+    if (baruSatuTitik) {
+      setGalatUmum(
+        'Lengkapi dulu kedua titik sudut Area Nama (huruf A kiri atas dan huruf Z kanan bawah), atau tekan Hapus Area Nama jika ingin melewati.',
+      );
       return;
     }
-    const kolomBaru: BlokIdentitas = {
-      kolomKe: blokIdentitas.length + 1,
-      jumlahDigit: 10,
-      radiusBulatan: draftIdentitas.radiusBulatan,
-      titikDigitPertama: draftIdentitas.titikPertama,
-      titikDigitTerakhir: draftIdentitas.titikTerakhir,
-    };
-    const daftarBaru = [...blokIdentitas, kolomBaru];
-    setBlokIdentitas(daftarBaru);
-    setDraftIdentitas({
-      kolomKe: daftarBaru.length + 1,
-      jumlahDigit: 10,
-      radiusBulatan: draftIdentitas.radiusBulatan,
-      titikPertama: null,
-      titikTerakhir: null,
-    });
-    setTargetKetukIdentitas('pertama');
-    setGalatUmum(null);
-  };
-
-  const handleHapusKolomIdentitas = (indeks: number) => {
-    const daftarBaru = blokIdentitas
-      .filter((_, i) => i !== indeks)
-      .map((item, i) => ({ ...item, kolomKe: i + 1 }));
-    setBlokIdentitas(daftarBaru);
-    setDraftIdentitas((prev) => ({
-      ...prev,
-      kolomKe: daftarBaru.length + 1,
-    }));
+    pindahLangkah(6);
   };
 
   // --- Handler Langkah 6 (Uji Template & Simpan) ---
@@ -688,16 +704,13 @@ export function BuatTemplatePage({
       const jawabanSimulasi = Array.from({ length: jumlahSoalAngka }, (_, i) =>
         hurufTersedia[i % hurufTersedia.length],
       );
-      const idSimulasi =
-        blokIdentitas.length > 0
-          ? Array.from({ length: blokIdentitas.length }, (_, i) =>
-              String((i + 1) % 10),
-            ).join('')
-          : undefined;
+      const namaSimulasi = blokNamaAktif
+        ? 'BUDI SANTOSO'.slice(0, blokNamaAktif.jumlahKolom)
+        : undefined;
 
       const rgba = await buatContohLjkDiWorker(draftTemplate, {
         jawabanDiisi: jawabanSimulasi,
-        identitasDigit: idSimulasi,
+        namaSiswa: namaSimulasi,
         kemiringanDerajat: 3,
         perspektif: 0.03,
         bayangan: 30,
@@ -737,7 +750,7 @@ export function BuatTemplatePage({
         ukuranStandar,
         jenisPenanda,
         blokJawaban,
-        ...(blokIdentitas.length > 0 ? { blokIdentitas } : {}),
+        ...(blokNamaAktif ? { blokNama: blokNamaAktif } : {}),
         ...(fotoLurusBlob ? { gambarContoh: fotoLurusBlob } : {}),
       };
 
@@ -778,12 +791,12 @@ export function BuatTemplatePage({
         ? `Ketuk 2/2: bulatan No. ${nomorAkhirDraft} pilihan ${hurufPilihanTerakhir}`
         : 'Periksa lingkaran biru. Ketuk ulang untuk geser, atau tekan Tambah Blok.';
 
-  const labelPanduanIdentitas =
-    !draftIdentitas.titikPertama || targetKetukIdentitas === 'pertama'
-      ? `Ketuk 1/2: bulatan angka 0 (Kolom ${draftIdentitas.kolomKe})`
-      : !draftIdentitas.titikTerakhir
-        ? `Ketuk 2/2: bulatan angka 9 (Kolom ${draftIdentitas.kolomKe})`
-        : 'Periksa 10 lingkaran biru, lalu tekan Tambah Kolom.';
+  const labelPanduanNama =
+    !draftNama.titikHurufAPertama || targetKetukNama === 'pertama'
+      ? 'Ketuk 1/2: bulatan huruf A paling kiri atas (Kolom 1)'
+      : !draftNama.titikHurufZTerakhir
+        ? `Ketuk 2/2: bulatan huruf Z paling kanan bawah (Kolom ${draftNama.jumlahKolom})`
+        : 'Periksa kisi lingkaran ungu (A–Z). Geser halus jika perlu, lalu tekan Lanjut.';
 
   return (
     <div className="space-y-4">
@@ -1366,15 +1379,15 @@ export function BuatTemplatePage({
                   Ukuran lingkaran bantu
                 </label>
                 <span className="rounded bg-blue-100 px-2 py-0.5 text-blue-950">
-                  Ukuran {draftJawaban.radiusBulatan}
+                  Ukuran {String(draftJawaban.radiusBulatan).replace('.', ',')}
                 </span>
               </div>
               <input
                 id="radius-bulatan-jawaban"
                 type="range"
-                min={5}
+                min={4}
                 max={28}
-                step={1}
+                step={0.5}
                 value={draftJawaban.radiusBulatan}
                 onChange={(e) =>
                   setDraftJawaban((prev) => ({
@@ -1423,7 +1436,7 @@ export function BuatTemplatePage({
             fotoLurusUrl={fotoLurusUrl}
             ukuranStandar={ukuranStandar}
             blokJawabanTersimpan={blokJawaban}
-            blokIdentitasTersimpan={blokIdentitas}
+            blokNamaTersimpan={blokNamaAktif}
             draftJawaban={draftJawaban}
             ketukanAktif
             labelPanduanKetuk={labelPanduanJawaban}
@@ -1548,14 +1561,14 @@ export function BuatTemplatePage({
               onClick={handleLanjutDariBlokJawaban}
               className="inline-flex min-h-12 flex-[2] items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-3 text-base font-bold text-white hover:bg-blue-800 active:bg-blue-950"
             >
-              <span>Lanjut: Area Identitas</span>
+              <span>Lanjut: Area Nama</span>
               <ChevronRight className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </section>
       ) : null}
 
-      {/* ==================== LANGKAH 5: AREA IDENTITAS (OPSIONAL) ==================== */}
+      {/* ==================== LANGKAH 5: AREA NAMA SISWA (OPSIONAL) ==================== */}
       {langkah === 5 && fotoLurusUrl ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
           <div>
@@ -1564,34 +1577,66 @@ export function BuatTemplatePage({
               tabIndex={-1}
               className="text-lg font-bold text-slate-900 focus:outline-none"
             >
-              Langkah 5: Area Identitas Siswa (Opsional)
+              Langkah 5: Area Nama Siswa (Opsional)
             </h2>
             <p className="mt-1 text-sm text-slate-700">
-              Jika LJK sekolah Anda punya kolom bulatan nomor induk / nomor
-              peserta (digit 0–9), tandai tiap kolomnya di sini. Jika tidak ada,
-              langsung tekan tombol <strong>Lewati &amp; Uji Template</strong>.
+              Tandai kotak bulatan huruf <strong>A sampai Z</strong> seperti
+              saat menandai jawaban: cukup ketuk{' '}
+              <strong>ujung kiri atas (huruf A)</strong> dan{' '}
+              <strong>ujung kanan bawah (huruf Z)</strong>. Kolom yang kosong
+              otomatis dibaca sebagai <strong>spasi</strong>. Jika tidak perlu,
+              langsung tekan <strong>Lewati &amp; Uji Template</strong>.
             </p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-3">
             <div className="space-y-1">
+              <label
+                htmlFor="jumlah-kolom-nama"
+                className="block text-xs font-bold text-slate-900"
+              >
+                Jumlah Kolom Nama
+              </label>
+              <input
+                id="jumlah-kolom-nama"
+                type="number"
+                min={1}
+                max={30}
+                value={draftNama.jumlahKolom}
+                onChange={(e) =>
+                  setDraftNama((prev) => ({
+                    ...prev,
+                    jumlahKolom: Math.max(
+                      1,
+                      Math.min(30, Math.round(Number(e.target.value) || 1)),
+                    ),
+                  }))
+                }
+                className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base font-bold text-slate-900"
+              />
+              <p className="text-xs text-slate-600">
+                Bawaan 20 kolom (huruf A–Z dari atas ke bawah pada setiap kolom).
+              </p>
+            </div>
+
+            <div className="space-y-1">
               <div className="flex items-center justify-between text-xs font-bold text-slate-900">
-                <label htmlFor="radius-bulatan-id">
-                  Ukuran bulatan digit (Kolom {draftIdentitas.kolomKe})
+                <label htmlFor="radius-bulatan-nama">
+                  Ukuran lingkaran huruf nama
                 </label>
-                <span className="rounded bg-blue-100 px-2 py-0.5 text-blue-950">
-                  Ukuran {draftIdentitas.radiusBulatan}
+                <span className="rounded bg-purple-100 px-2 py-0.5 text-purple-950">
+                  Ukuran {String(draftNama.radiusBulatan).replace('.', ',')}
                 </span>
               </div>
               <input
-                id="radius-bulatan-id"
+                id="radius-bulatan-nama"
                 type="range"
-                min={5}
-                max={22}
-                step={1}
-                value={draftIdentitas.radiusBulatan}
+                min={3}
+                max={18}
+                step={0.5}
+                value={draftNama.radiusBulatan}
                 onChange={(e) =>
-                  setDraftIdentitas((prev) => ({
+                  setDraftNama((prev) => ({
                     ...prev,
                     radiusBulatan: Number(e.target.value),
                   }))
@@ -1603,103 +1648,101 @@ export function BuatTemplatePage({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setTargetKetukIdentitas('pertama')}
-                aria-pressed={targetKetukIdentitas === 'pertama'}
+                onClick={() => setTargetKetukNama('pertama')}
+                aria-pressed={targetKetukNama === 'pertama'}
                 className={`min-h-12 rounded-xl border-2 px-2.5 py-2 text-xs font-bold ${
-                  targetKetukIdentitas === 'pertama'
+                  targetKetukNama === 'pertama'
                     ? 'border-orange-600 bg-orange-50 text-orange-950'
                     : 'border-slate-300 bg-white text-slate-800'
                 }`}
               >
-                1. Angka 0 (atas) {draftIdentitas.titikPertama ? '✓' : ''}
+                1. Kiri Atas: Huruf A {draftNama.titikHurufAPertama ? '✓' : ''}
               </button>
               <button
                 type="button"
-                onClick={() => setTargetKetukIdentitas('terakhir')}
-                aria-pressed={targetKetukIdentitas === 'terakhir'}
+                onClick={() => setTargetKetukNama('terakhir')}
+                aria-pressed={targetKetukNama === 'terakhir'}
                 className={`min-h-12 rounded-xl border-2 px-2.5 py-2 text-xs font-bold ${
-                  targetKetukIdentitas === 'terakhir'
+                  targetKetukNama === 'terakhir'
                     ? 'border-sky-600 bg-sky-50 text-sky-950'
                     : 'border-slate-300 bg-white text-slate-800'
                 }`}
               >
-                2. Angka 9 (bawah) {draftIdentitas.titikTerakhir ? '✓' : ''}
+                2. Kanan Bawah: Huruf Z{' '}
+                {draftNama.titikHurufZTerakhir ? '✓' : ''}
               </button>
             </div>
           </div>
 
           <BubbleGridMarker
-            mode="identitas"
+            mode="nama"
             fotoLurusUrl={fotoLurusUrl}
             ukuranStandar={ukuranStandar}
             blokJawabanTersimpan={blokJawaban}
-            blokIdentitasTersimpan={blokIdentitas}
-            draftIdentitas={draftIdentitas}
+            draftNama={draftNama}
             ketukanAktif
-            labelPanduanKetuk={labelPanduanIdentitas}
-            onKetukGambar={handleKetukGambarIdentitas}
+            labelPanduanKetuk={labelPanduanNama}
+            onKetukGambar={handleKetukGambarNama}
           />
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <button
-              type="button"
-              disabled={
-                !draftIdentitas.titikPertama && !draftIdentitas.titikTerakhir
-              }
-              onClick={() => {
-                setDraftIdentitas((prev) => ({
-                  ...prev,
-                  titikPertama: null,
-                  titikTerakhir: null,
-                }));
-                setTargetKetukIdentitas('pertama');
-              }}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-200 disabled:opacity-45"
-            >
-              <Undo2 className="h-4 w-4" aria-hidden="true" />
-              <span>Ulangi Kolom Ini</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={
-                !draftIdentitas.titikPertama || !draftIdentitas.titikTerakhir
-              }
-              onClick={handleTambahKolomIdentitas}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-purple-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-purple-800 disabled:opacity-45"
-            >
-              <Plus className="h-5 w-5" aria-hidden="true" />
-              <span>Tambah Kolom Digit {draftIdentitas.kolomKe}</span>
-            </button>
-          </div>
-
-          {blokIdentitas.length > 0 ? (
-            <div className="space-y-2 border-t border-slate-200 pt-3">
-              <h3 className="text-sm font-bold text-slate-900">
-                Kolom Identitas ({blokIdentitas.length} digit)
-              </h3>
-              <ul className="space-y-2">
-                {blokIdentitas.map((kolom, idx) => (
-                  <li
-                    key={`id-col-${kolom.kolomKe}`}
-                    className="flex items-center justify-between gap-2 rounded-xl border border-purple-200 bg-purple-50/70 px-3.5 py-2"
+          {/* Geser halus titik sudut area nama (1 satuan agar presisi pada bulatan kecil) */}
+          {(targetKetukNama === 'pertama' && draftNama.titikHurufAPertama) ||
+          (targetKetukNama === 'terakhir' && draftNama.titikHurufZTerakhir) ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <span className="text-xs font-bold text-slate-800">
+                Geser halus titik{' '}
+                {targetKetukNama === 'pertama'
+                  ? 'Huruf A (kiri atas)'
+                  : 'Huruf Z (kanan bawah)'}
+                :
+              </span>
+              <div className="flex items-center gap-1.5">
+                {[
+                  { label: '←', nama: 'kiri', dx: -1, dy: 0 },
+                  { label: '↑', nama: 'atas', dx: 0, dy: -1 },
+                  { label: '↓', nama: 'bawah', dx: 0, dy: 1 },
+                  { label: '→', nama: 'kanan', dx: 1, dy: 0 },
+                ].map((btn) => (
+                  <button
+                    key={btn.nama}
+                    type="button"
+                    aria-label={`Geser titik area nama ke ${btn.nama}`}
+                    onClick={() =>
+                      handleGeserTitikNama(targetKetukNama, btn.dx, btn.dy)
+                    }
+                    className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border border-slate-300 bg-white text-base font-bold text-slate-900 hover:bg-slate-100"
                   >
-                    <span className="text-sm font-bold text-slate-900">
-                      Kolom Digit ke-{kolom.kolomKe} (angka 0–9)
-                    </span>
-                    <button
-                      type="button"
-                      aria-label={`Hapus kolom digit ke-${kolom.kolomKe}`}
-                      onClick={() => handleHapusKolomIdentitas(idx)}
-                      className="inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center rounded-xl text-red-700 hover:bg-red-100"
-                    >
-                      <Trash2 className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                  </li>
+                    {btn.label}
+                  </button>
                 ))}
-              </ul>
+              </div>
             </div>
           ) : null}
+
+          {blokNamaAktif ? (
+            <div className="flex items-center gap-2.5 rounded-xl border border-purple-200 bg-purple-50 px-3.5 py-3 text-sm font-bold text-purple-950">
+              <CheckCircle2
+                className="h-5 w-5 shrink-0 text-purple-700"
+                aria-hidden="true"
+              />
+              <span>
+                Area Nama aktif ({blokNamaAktif.jumlahKolom} kolom huruf A–Z,
+                kolom kosong = spasi).
+              </span>
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            disabled={
+              !draftNama.titikHurufAPertama && !draftNama.titikHurufZTerakhir
+            }
+            onClick={handleHapusAreaNama}
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-200 disabled:opacity-45"
+          >
+            <Undo2 className="h-4 w-4" aria-hidden="true" />
+            <span>Ulangi / Hapus Area Nama</span>
+          </button>
 
           <div className="flex gap-2.5 pt-2">
             <button
@@ -1712,11 +1755,11 @@ export function BuatTemplatePage({
             </button>
             <button
               type="button"
-              onClick={() => pindahLangkah(6)}
+              onClick={handleLanjutDariAreaNama}
               className="inline-flex min-h-12 flex-[2] items-center justify-center gap-1.5 rounded-xl bg-blue-900 px-4 py-3 text-base font-bold text-white hover:bg-blue-800 active:bg-blue-950"
             >
               <span>
-                {blokIdentitas.length === 0
+                {!blokNamaAktif
                   ? 'Lewati & Uji Template'
                   : 'Lanjut: Uji Template'}
               </span>
@@ -1750,8 +1793,8 @@ export function BuatTemplatePage({
             <p>
               {jumlahSoalAngka} soal &middot; {blokJawaban.length} blok &middot;
               Pilihan A–{hurufPilihanTerakhir}
-              {blokIdentitas.length > 0
-                ? ` · Identitas ${blokIdentitas.length} digit`
+              {blokNamaAktif
+                ? ` · Area Nama ${blokNamaAktif.jumlahKolom} kolom (A–Z)`
                 : ''}
             </p>
           </div>
@@ -1850,9 +1893,9 @@ export function BuatTemplatePage({
 
               {hasilUji.hasil.identitas ? (
                 <p className="text-sm text-slate-800">
-                  <strong>Identitas siswa terbaca:</strong>{' '}
+                  <strong>Nama siswa terbaca:</strong>{' '}
                   <span className="rounded bg-purple-100 px-2 py-0.5 font-bold text-purple-950">
-                    {hasilUji.hasil.identitas.nilaiTerbaca}
+                    {hasilUji.hasil.identitas.nilaiTerbaca || '(Kosong)'}
                   </span>
                 </p>
               ) : null}
@@ -1953,6 +1996,42 @@ export function BuatTemplatePage({
                             })}
                           </g>
                         ))}
+                        {/* Tanda huruf nama siswa yang terbaca pada foto uji */}
+                        {hasilUji.hasil.identitas?.perKolom.map((kolom) =>
+                          kolom.bulatan.map((b) => {
+                            if (
+                              !kolom.ragu &&
+                              kolom.digitTerbaca !== ' ' &&
+                              kolom.digitTerbaca === b.label
+                            ) {
+                              return (
+                                <circle
+                                  key={`un-${kolom.kolomKe}-${b.label}`}
+                                  cx={b.pusat.x}
+                                  cy={b.pusat.y}
+                                  r={b.radius + 2}
+                                  fill="rgba(124, 58, 237, 0.28)"
+                                  stroke="#6d28d9"
+                                  strokeWidth="2.5"
+                                />
+                              );
+                            }
+                            if (kolom.ragu && b.status !== 'kosong') {
+                              return (
+                                <circle
+                                  key={`unr-${kolom.kolomKe}-${b.label}`}
+                                  cx={b.pusat.x}
+                                  cy={b.pusat.y}
+                                  r={b.radius + 2}
+                                  fill="rgba(234, 179, 8, 0.3)"
+                                  stroke="#a16207"
+                                  strokeWidth="2.5"
+                                />
+                              );
+                            }
+                            return null;
+                          }),
+                        )}
                       </svg>
                     ) : null}
                   </div>

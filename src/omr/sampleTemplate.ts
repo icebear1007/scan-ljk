@@ -79,7 +79,9 @@ export interface OpsiGambarContohLJK {
   arsiranTipis?: Record<number, string>;
   /** Nomor 1-based dengan bekas hapus samar (ragu). */
   bekasHapus?: Record<number, string>;
-  /** 4 digit identitas siswa (mis. '2407'). */
+  /** Nama siswa huruf A-Z & spasi untuk template yang memakai blokNama (mis. 'BUDI SANTOSO'). */
+  namaSiswa?: string;
+  /** 4 digit identitas siswa untuk template lama blokIdentitas (mis. '2407'). */
   identitasDigit?: string;
   /** Kemiringan kertas dalam derajat (mis. 4 atau -6). */
   kemiringanDerajat?: number;
@@ -236,29 +238,31 @@ export function buatFotoContohLjkDenganOpenCv(
       }
     }
 
-    // 3. Gambar blok identitas jika ada
+    // 3. Gambar blok nama (A-Z) atau blok identitas lama (0-9) jika ada
     const semuaIdentitas = hitungPosisiSemuaIdentitas(template);
-    const digitTarget = (opsi.identitasDigit ?? '').trim();
+    const teksTarget = template.blokNama
+      ? (opsi.namaSiswa ?? '').toUpperCase()
+      : (opsi.identitasDigit ?? '').trim();
     for (let k = 0; k < semuaIdentitas.length; k++) {
       const kolom = semuaIdentitas[k];
-      const digitDiisi = digitTarget[k] ?? '';
+      const karakterDiisi = teksTarget[k] ?? '';
       for (const d of kolom.digit) {
         const cx = Math.round(marginKertas + d.pusat.x + geserX);
         const cy = Math.round(marginKertas + d.pusat.y + geserY);
-        const r = Math.round(d.radius);
+        const r = Math.max(2, Math.round(d.radius));
 
         cv.circle(
           lembar,
           new cv.Point(cx, cy),
           r,
-          new cv.Scalar(90, 90, 90, 255),
-          2,
+          new cv.Scalar(95, 95, 95, 255),
+          r <= 11 ? 1 : 2,
         );
-        if (digitDiisi === d.label) {
+        if (karakterDiisi !== '' && karakterDiisi !== ' ' && karakterDiisi === d.label) {
           cv.circle(
             lembar,
             new cv.Point(cx, cy),
-            Math.max(3, Math.round(r * 0.8)),
+            Math.max(2, Math.round(r * 0.82)),
             new cv.Scalar(35, 35, 38, 255),
             -1,
           );

@@ -10,10 +10,13 @@ import {
   hitungNilaiAkhir,
   hitungPenilaianDariBacaan,
   putuskanJawabanSatuNomor,
+  putuskanNamaSiswa,
 } from '../src/omr/decision.ts';
 import {
+  hitungPosisiBlokNama,
   hitungPosisiSemuaSoal,
   hitungUkuranStandarDariSudut,
+  HURUF_NAMA,
 } from '../src/omr/geometry.ts';
 import {
   KUNCI_CONTOH_40_SOAL,
@@ -426,5 +429,110 @@ describe('Mesin Pembaca OpenCV.js (Alur Penuh)', () => {
     assert.equal(hasilBaca.gambarLurus?.tinggi, 1000);
     assert.equal(hasilBaca.ringkasanNilai?.benar, 50);
     assert.equal(hasilBaca.ringkasanNilai?.nilai, 100);
+  });
+
+  it('membaca nama siswa 20 kolom (A-Z, kosong = spasi) termasuk bulatan kecil', () => {
+    // 1. Uji logika murni: kolom kosong jadi spasi, huruf cetakan tebal (0.15-0.38) tetap bersih sebagai spasi
+    const buatKolomNama = (
+      kolomKe: number,
+      hurufDiisi: string | string[],
+      latarCetakan = 0.25,
+    ) => {
+      const daftarDiisi = Array.isArray(hurufDiisi)
+        ? hurufDiisi
+        : hurufDiisi
+          ? [hurufDiisi]
+          : [];
+      return {
+        kolomKe,
+        bulatan: HURUF_NAMA.map((h, i) => ({
+          label: h,
+          pusat: { x: 20 + kolomKe * 20, y: 200 + i * 18 },
+          radius: 5,
+          rasioGelap: daftarDiisi.includes(h)
+            ? 0.84
+            : Number((latarCetakan + ((i % 5) - 2) * 0.03).toFixed(3)),
+        })),
+      };
+    };
+
+    const namaTarget = 'ANI SARI';
+    const kolom20 = Array.from({ length: 20 }, (_, i) => {
+      const ch = namaTarget[i] ?? ' ';
+      return buatKolomNama(i + 1, ch === ' ' ? '' : ch, 0.26);
+    });
+    const hasilMurni = putuskanNamaSiswa(kolom20, PENGATURAN_AWAL);
+    assert.equal(hasilMurni.nilaiTerbaca, 'ANI SARI');
+
+    // Kolom ganda ditandai '?'
+    const kolomDenganGanda = [
+      buatKolomNama(1, 'A'),
+      buatKolomNama(2, ['N', 'M']),
+      buatKolomNama(3, 'I'),
+      buatKolomNama(4, ''),
+    ];
+    assert.equal(putuskanNamaSiswa(kolomDenganGanda, PENGATURAN_AWAL).nilaiTerbaca, 'A?I');
+
+    // Semua kolom kosong (seperti lembar kosong) -> string kosong tanpa '?'
+    const semuaKosong = Array.from({ length: 20 }, (_, i) =>
+      buatKolomNama(i + 1, '', 0.26),
+    );
+    assert.equal(putuskanNamaSiswa(semuaKosong, PENGATURAN_AWAL).nilaiTerbaca, '');
+
+    // 2. Uji penuh OpenCV.js: LJK mendatar dengan 20 kolom nama (A-Z, radius 6) + 50 soal
+    const templateKarawang: TemplateLJK = {
+      id: 'uji-nama-20-kolom',
+      nama: 'Uji LJK Mendatar + Nama 20 Kolom',
+      jumlahSoal: 50,
+      jumlahPilihan: 4,
+      ukuranStandar: { lebar: 1414, tinggi: 980 },
+      jenisPenanda: 'tepi-kertas',
+      blokJawaban: Array.from({ length: 5 }, (_, idx) => ({
+        nomorAwal: idx * 10 + 1,
+        jumlahNomor: 10,
+        titikBulatanPertama: { x: 85 + idx * 150, y: 740 },
+        titikBulatanTerakhir: { x: 165 + idx * 150, y: 950 },
+        jumlahPilihan: 4,
+        radiusBulatan: 8,
+      })),
+      blokNama: {
+        jumlahKolom: 20,
+        titikHurufAPertama: { x: 32, y: 240 },
+        titikHurufZTerakhir: { x: 450, y: 690 },
+        radiusBulatan: 6,
+      },
+      tanggalDibuat: '2026-11-21T00:00:00.000Z',
+      tanggalDiubah: '2026-11-21T00:00:00.000Z',
+    };
+
+    const posisiNama = hitungPosisiBlokNama(templateKarawang.blokNama!);
+    assert.equal(posisiNama.length, 20);
+    assert.equal(posisiNama[0].digit.length, 26);
+    assert.equal(posisiNama[0].digit[0].label, 'A');
+    assert.equal(posisiNama[19].digit[25].label, 'Z');
+
+    const kunci50 = Array.from(
+      { length: 50 },
+      (_, i) => ['A', 'B', 'C', 'D'][i % 4],
+    );
+    const foto = buatFotoContohLjkDenganOpenCv(cv, templateKarawang, {
+      jawabanDiisi: kunci50,
+      namaSiswa: 'BUDI SANTOSO',
+      tanpaPenandaSudut: true,
+      kemiringanDerajat: 1.5,
+      perspektif: 0.02,
+      bayangan: 20,
+    });
+
+    const hasil = bacaLjkDenganOpenCv(cv, foto, {
+      template: templateKarawang,
+      pengaturan: PENGATURAN_AWAL,
+      kunciJawaban: kunci50,
+      sertakanGambarLurus: false,
+    });
+
+    assert.equal(hasil.berhasil, true);
+    assert.equal(hasil.identitas?.nilaiTerbaca, 'BUDI SANTOSO');
+    assert.equal(hasil.ringkasanNilai?.benar, 50);
   });
 });

@@ -102,8 +102,22 @@ export function ScanPage({
       const nomorTipis = Math.min(7, tpl.jumlahSoal);
       const hurufTipis = kunci[nomorTipis - 1] || hurufSah[0];
 
+      const contohDaftarNama = [
+        'ANI RAHMAWATI',
+        'BUDI SANTOSO',
+        'CITRA DEWI',
+        'DIMAS PRATAMA',
+        'EKA PUTRI',
+      ];
+      const namaSimulasi = tpl.blokNama
+        ? contohDaftarNama[jumlahTerkoreksi % contohDaftarNama.length].slice(
+            0,
+            tpl.blokNama.jumlahKolom,
+          )
+        : undefined;
+
       const idDigit =
-        tpl.blokIdentitas && tpl.blokIdentitas.length > 0
+        !tpl.blokNama && tpl.blokIdentitas && tpl.blokIdentitas.length > 0
           ? Array.from({ length: tpl.blokIdentitas.length }, (_, i) =>
               String((jumlahTerkoreksi + i + 1) % 10),
             ).join('')
@@ -112,6 +126,7 @@ export function ScanPage({
       const rgba = await buatContohLjkDiWorker(tpl, {
         jawabanDiisi: jawabanSiswa,
         arsiranTipis: tpl.jumlahSoal >= 7 ? { [nomorTipis]: hurufTipis } : undefined,
+        namaSiswa: namaSimulasi,
         identitasDigit: idDigit,
         kemiringanDerajat: 4,
         perspektif: 0.04,

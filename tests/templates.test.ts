@@ -81,7 +81,12 @@ describe('Manajemen Template & Validasi Blok (Tahap 4)', () => {
         ukuranStandar: { lebar: 1000, tinggi: 1414 },
         jenisPenanda: 'penanda-sudut',
         blokJawaban: TEMPLATE_CONTOH_40_SOAL.blokJawaban,
-        blokIdentitas: TEMPLATE_CONTOH_40_SOAL.blokIdentitas,
+        blokNama: {
+          jumlahKolom: 20,
+          titikHurufAPertama: { x: 30, y: 240 },
+          titikHurufZTerakhir: { x: 450, y: 690 },
+          radiusBulatan: 6,
+        },
         gambarContoh: gambar,
       },
       testDb,
@@ -105,6 +110,12 @@ describe('Manajemen Template & Validasi Blok (Tahap 4)', () => {
     assert.notEqual(duplikat.id, dibuat.id);
     assert.equal(duplikat.nama, 'LJK Sekolah 40 Soal (Salinan)');
     assert.equal(duplikat.blokJawaban.length, 4);
+    assert.deepEqual(duplikat.blokNama, {
+      jumlahKolom: 20,
+      titikHurufAPertama: { x: 30, y: 240 },
+      titikHurufZTerakhir: { x: 450, y: 690 },
+      radiusBulatan: 6,
+    });
     assert.ok(duplikat.gambarContoh instanceof Blob);
     assert.equal(await testDb.templates.count(), 2);
 

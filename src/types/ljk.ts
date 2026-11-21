@@ -19,6 +19,15 @@ export interface BlokJawaban {
   radiusBulatan: number;
 }
 
+export interface BlokNama {
+  jumlahKolom: number;
+  /** Pusat bulatan huruf A pada kolom pertama (ujung kiri atas area nama). */
+  titikHurufAPertama: Titik;
+  /** Pusat bulatan huruf Z pada kolom terakhir (ujung kanan bawah area nama). */
+  titikHurufZTerakhir: Titik;
+  radiusBulatan: number;
+}
+
 export interface BlokIdentitas {
   kolomKe: number;
   titikDigitPertama: Titik;
@@ -35,6 +44,9 @@ export interface TemplateLJK {
   ukuranStandar: UkuranStandar;
   jenisPenanda: JenisPenanda;
   blokJawaban: BlokJawaban[];
+  /** Area pendeteksi nama siswa (kisi kolom x huruf A-Z, kosong = spasi). */
+  blokNama?: BlokNama;
+  /** Dipertahankan opsional untuk kompatibilitas template lama. */
   blokIdentitas?: BlokIdentitas[];
   gambarContoh?: Blob;
   tanggalDibuat: string;

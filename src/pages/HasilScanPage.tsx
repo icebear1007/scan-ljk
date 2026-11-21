@@ -122,9 +122,11 @@ export function HasilScanPage({
 
   const identitasOtomatis = (() => {
     if (hasilTersimpan) return hasilTersimpan.identitasSiswa;
-    const terbaca = hasilBacaBaru?.identitas?.nilaiTerbaca ?? '';
-    return terbaca && !terbaca.includes('?') ? terbaca : '';
+    const terbaca = (hasilBacaBaru?.identitas?.nilaiTerbaca ?? '').trim();
+    return /[A-Z0-9]/i.test(terbaca) ? terbaca : '';
   })();
+  const namaAdaHurufRagu =
+    !hasilTersimpan && identitasOtomatis.includes('?');
 
   const [identitasSiswa, setIdentitasSiswa] = useState(identitasOtomatis);
   const [kelasSiswa, setKelasSiswa] = useState(
@@ -580,10 +582,18 @@ export function HasilScanPage({
             placeholder="Contoh: 01 - Ani Rahmawati (boleh dikosongkan)"
             className="min-h-12 w-full rounded-xl border-2 border-slate-300 bg-white px-3.5 text-base font-medium text-slate-900"
           />
-          <p className="text-xs text-slate-600">
-            {identitasOtomatis
-              ? 'Terisi otomatis dari kolom identitas LJK. Anda bisa mengubahnya bila perlu.'
-              : 'Boleh dikosongkan sekarang dan dilengkapi nanti pada halaman Rekap.'}
+          <p
+            className={`text-xs ${
+              namaAdaHurufRagu
+                ? 'font-semibold text-amber-800'
+                : 'text-slate-600'
+            }`}
+          >
+            {namaAdaHurufRagu
+              ? "Sebagian huruf nama bertanda '?' kurang jelas terbaca. Silakan perbaiki di kotak atas sebelum menyimpan."
+              : identitasOtomatis
+                ? 'Terisi otomatis dari area nama pada LJK. Anda bisa mengubahnya bila perlu.'
+                : 'Boleh dikosongkan sekarang dan dilengkapi nanti pada halaman Rekap.'}
           </p>
         </div>
 

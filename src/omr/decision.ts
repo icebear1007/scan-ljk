@@ -120,6 +120,111 @@ export function putuskanIdentitas(
   return { nilaiTerbaca, perKolom };
 }
 
+/**
+ * Memutuskan nama siswa dari kisi huruf A-Z (mis. 20 kolom x 26 baris).
+ * - Memakai median tiap kolom sebagai dasar warna huruf cetakan kosong agar
+ *   kolom kosong tetap terbaca sebagai spasi (' ') meski huruf cetakan A-Z agak tebal.
+ * - Kolom kosong berarti spasi; spasi di awal/akhir dipangkas dan spasi beruntun dirapikan.
+ * - Kolom yang ambigu (ganda atau arsiran samar) ditandai '?'.
+ */
+export function putuskanNamaSiswa(
+  kolomMentah: Array<{
+    kolomKe: number;
+    bulatan: Array<Omit<PengukuranBulatan, 'status'>>;
+  }>,
+  pengaturan: Pick<PengaturanAplikasi, 'ambangTerisi' | 'ambangKosong'>,
+): HasilBacaIdentitas {
+  const perKolom: HasilBacaKolomIdentitas[] = kolomMentah.map((kolom) => {
+    const nilaiUrut = kolom.bulatan
+      .map((b) => b.rasioGelap)
+      .sort((a, b) => a - b);
+    const tengah = Math.floor(nilaiUrut.length / 2);
+    const median =
+      nilaiUrut.length === 0
+        ? 0
+        : nilaiUrut.length % 2 === 1
+          ? nilaiUrut[tengah]
+          : (nilaiUrut[tengah - 1] + nilaiUrut[tengah]) / 2;
+
+    // Ambang adaptif terhadap tingkat gelap huruf cetakan kosong di kolom itu
+    const ambangTerisiKolom = Math.min(
+      0.85,
+      Math.max(pengaturan.ambangTerisi, median + 0.26),
+    );
+    const ambangRaguKolom = Math.min(
+      ambangTerisiKolom - 0.04,
+      Math.max(pengaturan.ambangKosong, median + 0.2),
+    );
+
+    const bulatan: PengukuranBulatan[] = kolom.bulatan.map((item) => ({
+      ...item,
+      status:
+        item.rasioGelap >= ambangTerisiKolom
+          ? 'terisi'
+          : item.rasioGelap < ambangRaguKolom
+            ? 'kosong'
+            : 'ragu',
+    }));
+
+    const terisi = bulatan.filter((b) => b.status === 'terisi');
+    const raguList = bulatan.filter((b) => b.status === 'ragu');
+
+    // 1. Tepat satu huruf jelas terisi
+    if (terisi.length === 1) {
+      const kandidat = terisi[0];
+      const maksLain = bulatan.reduce(
+        (maks, b) => (b.label === kandidat.label ? maks : Math.max(maks, b.rasioGelap)),
+        0,
+      );
+      const selisih = kandidat.rasioGelap - maksLain;
+
+      if (
+        selisih >= 0.25 ||
+        (raguList.length === 0 && selisih >= SELISIH_RELATIF_MINIMAL)
+      ) {
+        return {
+          kolomKe: kolom.kolomKe,
+          digitTerbaca: kandidat.label,
+          ragu: false,
+          bulatan,
+        };
+      }
+      return {
+        kolomKe: kolom.kolomKe,
+        digitTerbaca: '?',
+        ragu: true,
+        bulatan,
+      };
+    }
+
+    // 2. Lebih dari satu huruf terisi atau ada arsiran samar yang mencolok -> ragu
+    if (terisi.length >= 2 || raguList.length > 0) {
+      return {
+        kolomKe: kolom.kolomKe,
+        digitTerbaca: '?',
+        ragu: true,
+        bulatan,
+      };
+    }
+
+    // 3. Semua bulatan di kolom ini kosong -> spasi
+    return {
+      kolomKe: kolom.kolomKe,
+      digitTerbaca: ' ',
+      ragu: false,
+      bulatan,
+    };
+  });
+
+  const nilaiTerbaca = perKolom
+    .map((k) => k.digitTerbaca)
+    .join('')
+    .trim()
+    .replace(/\s{2,}/g, ' ');
+
+  return { nilaiTerbaca, perKolom };
+}
+
 export function hitungPenilaianDariBacaan(
   hasilPerNomor: HasilBacaNomor[],
   kunciJawaban: string[],

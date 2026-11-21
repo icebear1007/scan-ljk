@@ -1,6 +1,7 @@
 import type {
   BlokIdentitas,
   BlokJawaban,
+  BlokNama,
   TemplateLJK,
   Titik,
   UkuranStandar,
@@ -8,6 +9,11 @@ import type {
 import type { EmpatSudut } from './types.ts';
 
 export const HURUF_PILIHAN = ['A', 'B', 'C', 'D', 'E'] as const;
+
+export const HURUF_NAMA = [
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+  'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+] as const;
 
 export interface PosisiBulatanSoal {
   nomor: number;
@@ -101,9 +107,45 @@ export function hitungPosisiKolomIdentitas(
   };
 }
 
+export function hitungPosisiBlokNama(
+  blok: BlokNama,
+): PosisiKolomIdentitas[] {
+  const jumlahKolom = Math.max(1, Math.min(40, Math.round(blok.jumlahKolom)));
+  const dx = blok.titikHurufZTerakhir.x - blok.titikHurufAPertama.x;
+  const dy = blok.titikHurufZTerakhir.y - blok.titikHurufAPertama.y;
+  const jumlahHuruf = HURUF_NAMA.length;
+
+  const hasil: PosisiKolomIdentitas[] = [];
+  for (let kolom = 0; kolom < jumlahKolom; kolom++) {
+    const fraksiKolom = jumlahKolom > 1 ? kolom / (jumlahKolom - 1) : 0;
+    const x = blok.titikHurufAPertama.x + fraksiKolom * dx;
+
+    const digit: PosisiKolomIdentitas['digit'] = [];
+    for (let baris = 0; baris < jumlahHuruf; baris++) {
+      const fraksiBaris = baris / (jumlahHuruf - 1);
+      const y = blok.titikHurufAPertama.y + fraksiBaris * dy;
+      digit.push({
+        label: HURUF_NAMA[baris],
+        pusat: { x, y },
+        radius: blok.radiusBulatan,
+      });
+    }
+
+    hasil.push({
+      kolomKe: kolom + 1,
+      digit,
+    });
+  }
+
+  return hasil;
+}
+
 export function hitungPosisiSemuaIdentitas(
   template: TemplateLJK,
 ): PosisiKolomIdentitas[] {
+  if (template.blokNama) {
+    return hitungPosisiBlokNama(template.blokNama);
+  }
   if (!template.blokIdentitas || template.blokIdentitas.length === 0) {
     return [];
   }

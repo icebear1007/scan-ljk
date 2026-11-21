@@ -161,6 +161,15 @@ export async function duplikatTemplate(
       titikBulatanPertama: { ...b.titikBulatanPertama },
       titikBulatanTerakhir: { ...b.titikBulatanTerakhir },
     })),
+    ...(asli.blokNama
+      ? {
+          blokNama: {
+            ...asli.blokNama,
+            titikHurufAPertama: { ...asli.blokNama.titikHurufAPertama },
+            titikHurufZTerakhir: { ...asli.blokNama.titikHurufZTerakhir },
+          },
+        }
+      : {}),
     ...(asli.blokIdentitas
       ? {
           blokIdentitas: asli.blokIdentitas.map((b) => ({

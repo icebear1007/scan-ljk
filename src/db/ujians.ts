@@ -236,6 +236,15 @@ async function gandakanTemplateUntukUjian(
       titikBulatanPertama: { ...b.titikBulatanPertama },
       titikBulatanTerakhir: { ...b.titikBulatanTerakhir },
     })),
+    ...(template.blokNama
+      ? {
+          blokNama: {
+            ...template.blokNama,
+            titikHurufAPertama: { ...template.blokNama.titikHurufAPertama },
+            titikHurufZTerakhir: { ...template.blokNama.titikHurufZTerakhir },
+          },
+        }
+      : {}),
     ...(template.blokIdentitas
       ? {
           blokIdentitas: template.blokIdentitas.map((b) => ({

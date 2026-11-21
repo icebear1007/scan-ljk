@@ -144,9 +144,11 @@ export function TemplatePage({
                     </p>
                     <p className="mt-0.5 text-xs text-slate-600">
                       {tpl.blokJawaban.length} blok jawaban
-                      {tpl.blokIdentitas && tpl.blokIdentitas.length > 0
-                        ? ` · Identitas ${tpl.blokIdentitas.length} digit`
-                        : ''}
+                      {tpl.blokNama
+                        ? ` · Nama ${tpl.blokNama.jumlahKolom} kolom (A–Z)`
+                        : tpl.blokIdentitas && tpl.blokIdentitas.length > 0
+                          ? ` · Identitas ${tpl.blokIdentitas.length} digit`
+                          : ''}
                     </p>
                   </div>
                 </div>

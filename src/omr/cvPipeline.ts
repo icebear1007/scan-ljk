@@ -4,6 +4,7 @@ import {
   hitungPenilaianDariBacaan,
   putuskanIdentitas,
   putuskanJawabanSatuNomor,
+  putuskanNamaSiswa,
 } from './decision.ts';
 import {
   evaluasiGeometriSegiEmpat,
@@ -507,7 +508,7 @@ function ukurKegelapanSatuBulatan(
 ): number {
   const cx = Math.round(pusat.x);
   const cy = Math.round(pusat.y);
-  const rDalam = Math.max(2, radius * 0.7);
+  const rDalam = Math.max(1.5, radius * 0.7);
   const rDalamKuadrat = rDalam * rDalam;
 
   // Hitung kecerahan latar kertas lokal (persentil ke-85 di kotak sekitar 3x radius)
@@ -1081,28 +1082,29 @@ export function bacaLjkDenganOpenCv(
       );
     }
 
-    // 5b. Baca kolom identitas siswa (jika template memiliki blokIdentitas)
+    // 5b. Baca area nama siswa (blokNama A-Z) atau identitas lama (blokIdentitas 0-9)
     const posisiIdentitas = hitungPosisiSemuaIdentitas(template);
+    const kolomIdentitasMentah = posisiIdentitas.map((kolom) => ({
+      kolomKe: kolom.kolomKe,
+      bulatan: kolom.digit.map((d) => ({
+        label: d.label,
+        pusat: d.pusat,
+        radius: d.radius,
+        rasioGelap: ukurKegelapanSatuBulatan(
+          grayDataUkur,
+          lebarStd,
+          tinggiStd,
+          d.pusat,
+          d.radius,
+        ),
+      })),
+    }));
+
     const identitas =
-      posisiIdentitas.length > 0
-        ? putuskanIdentitas(
-            posisiIdentitas.map((kolom) => ({
-              kolomKe: kolom.kolomKe,
-              bulatan: kolom.digit.map((d) => ({
-                label: d.label,
-                pusat: d.pusat,
-                radius: d.radius,
-                rasioGelap: ukurKegelapanSatuBulatan(
-                  grayDataUkur,
-                  lebarStd,
-                  tinggiStd,
-                  d.pusat,
-                  d.radius,
-                ),
-              })),
-            })),
-            pengaturan,
-          )
+      kolomIdentitasMentah.length > 0
+        ? template.blokNama
+          ? putuskanNamaSiswa(kolomIdentitasMentah, pengaturan)
+          : putuskanIdentitas(kolomIdentitasMentah, pengaturan)
         : undefined;
 
     // 7. Periksa kualitas keseluruhan (jumlah ragu & keselarasan posisi bulatan)

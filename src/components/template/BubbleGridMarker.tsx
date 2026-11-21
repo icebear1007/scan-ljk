@@ -1,12 +1,12 @@
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { useRef, useState, type MouseEvent } from 'react';
 import {
+  hitungPosisiBlokNama,
   hitungPosisiBulatanBlok,
-  hitungPosisiKolomIdentitas,
 } from '../../omr/geometry.ts';
 import type {
-  BlokIdentitas,
   BlokJawaban,
+  BlokNama,
   Titik,
   UkuranStandar,
 } from '../../types/ljk.ts';
@@ -20,37 +20,36 @@ export interface DraftBlokJawaban {
   titikTerakhir: Titik | null;
 }
 
-export interface DraftBlokIdentitas {
-  kolomKe: number;
-  jumlahDigit: number;
+export interface DraftBlokNama {
+  jumlahKolom: number;
   radiusBulatan: number;
-  titikPertama: Titik | null;
-  titikTerakhir: Titik | null;
+  titikHurufAPertama: Titik | null;
+  titikHurufZTerakhir: Titik | null;
 }
 
 interface BubbleGridMarkerProps {
-  mode: 'jawaban' | 'identitas';
+  mode: 'jawaban' | 'nama';
   fotoLurusUrl: string;
   ukuranStandar: UkuranStandar;
   blokJawabanTersimpan: BlokJawaban[];
-  blokIdentitasTersimpan: BlokIdentitas[];
+  blokNamaTersimpan?: BlokNama | null;
   draftJawaban?: DraftBlokJawaban;
-  draftIdentitas?: DraftBlokIdentitas;
+  draftNama?: DraftBlokNama;
   ketukanAktif: boolean;
   labelPanduanKetuk: string;
   onKetukGambar: (titik: Titik) => void;
 }
 
-const PILIHAN_ZOOM = [1, 1.5, 2] as const;
+const PILIHAN_ZOOM = [1, 1.5, 2, 3] as const;
 
 export function BubbleGridMarker({
   mode,
   fotoLurusUrl,
   ukuranStandar,
   blokJawabanTersimpan,
-  blokIdentitasTersimpan,
+  blokNamaTersimpan,
   draftJawaban,
-  draftIdentitas,
+  draftNama,
   ketukanAktif,
   labelPanduanKetuk,
   onKetukGambar,
@@ -89,35 +88,41 @@ export function BubbleGridMarker({
         })
       : [];
 
-  const pratinjauDraftIdentitas =
-    mode === 'identitas' &&
-    draftIdentitas?.titikPertama &&
-    draftIdentitas?.titikTerakhir
-      ? hitungPosisiKolomIdentitas({
-          kolomKe: draftIdentitas.kolomKe,
-          jumlahDigit: draftIdentitas.jumlahDigit,
-          radiusBulatan: draftIdentitas.radiusBulatan,
-          titikDigitPertama: draftIdentitas.titikPertama,
-          titikDigitTerakhir: draftIdentitas.titikTerakhir,
+  const pratinjauDraftNama =
+    mode === 'nama' &&
+    draftNama?.titikHurufAPertama &&
+    draftNama?.titikHurufZTerakhir
+      ? hitungPosisiBlokNama({
+          jumlahKolom: draftNama.jumlahKolom,
+          radiusBulatan: draftNama.radiusBulatan,
+          titikHurufAPertama: draftNama.titikHurufAPertama,
+          titikHurufZTerakhir: draftNama.titikHurufZTerakhir,
         })
-      : null;
+      : [];
+
+  const posisiNamaTersimpan =
+    mode !== 'nama' && blokNamaTersimpan
+      ? hitungPosisiBlokNama(blokNamaTersimpan)
+      : [];
 
   const titikPertamaAktif =
     mode === 'jawaban'
-      ? draftJawaban?.titikPertama ?? null
-      : draftIdentitas?.titikPertama ?? null;
+      ? (draftJawaban?.titikPertama ?? null)
+      : (draftNama?.titikHurufAPertama ?? null);
   const titikTerakhirAktif =
     mode === 'jawaban'
-      ? draftJawaban?.titikTerakhir ?? null
-      : draftIdentitas?.titikTerakhir ?? null;
+      ? (draftJawaban?.titikTerakhir ?? null)
+      : (draftNama?.titikHurufZTerakhir ?? null);
   const radiusAktif =
     mode === 'jawaban'
-      ? draftJawaban?.radiusBulatan ?? 15
-      : draftIdentitas?.radiusBulatan ?? 11;
+      ? (draftJawaban?.radiusBulatan ?? 12)
+      : (draftNama?.radiusBulatan ?? 6);
+
+  const tebalGarisNama = Math.max(1.2, Math.min(2.2, radiusAktif * 0.28));
 
   return (
     <div className="space-y-2.5">
-      {/* Kontrol perbesaran agar mudah mengetuk bulatan di layar HP */}
+      {/* Kontrol perbesaran agar mudah mengetuk bulatan kecil di layar HP */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-bold text-blue-950">{labelPanduanKetuk}</p>
         <div
@@ -132,7 +137,7 @@ export function BubbleGridMarker({
               type="button"
               onClick={() => setZoom(z)}
               aria-pressed={zoom === z}
-              className={`min-h-12 min-w-12 rounded-lg px-2.5 text-xs font-bold transition-colors ${
+              className={`min-h-12 min-w-12 rounded-lg px-2 text-xs font-bold transition-colors ${
                 zoom === z
                   ? 'bg-blue-900 text-white'
                   : 'bg-transparent text-slate-800 hover:bg-slate-200'
@@ -176,6 +181,7 @@ export function BubbleGridMarker({
             {blokJawabanTersimpan.map((blok, idx) => {
               const daftarSoal = hitungPosisiBulatanBlok(blok);
               const pertama = daftarSoal[0]?.pilihan[0];
+              const tebal = Math.max(1.6, Math.min(3, blok.radiusBulatan * 0.25));
               return (
                 <g key={`saved-j-${idx}`}>
                   {daftarSoal.map((soal) =>
@@ -187,7 +193,7 @@ export function BubbleGridMarker({
                         r={pil.radius}
                         fill="rgba(22, 163, 74, 0.16)"
                         stroke="#15803d"
-                        strokeWidth="3"
+                        strokeWidth={tebal}
                       />
                     )),
                   )}
@@ -206,37 +212,24 @@ export function BubbleGridMarker({
               );
             })}
 
-            {/* Kolom identitas yang sudah ditambahkan (ungu) */}
-            {blokIdentitasTersimpan.map((kolom, idx) => {
-              const posisi = hitungPosisiKolomIdentitas(kolom);
-              const pertama = posisi.digit[0];
-              return (
-                <g key={`saved-id-${idx}`}>
-                  {posisi.digit.map((d) => (
+            {/* Area nama yang sudah tersimpan (ungu tipis saat sedang di langkah Jawaban) */}
+            {posisiNamaTersimpan.length > 0 ? (
+              <g>
+                {posisiNamaTersimpan.map((kolom) =>
+                  kolom.digit.map((d) => (
                     <circle
-                      key={`sid-${idx}-${d.label}`}
+                      key={`sn-${kolom.kolomKe}-${d.label}`}
                       cx={d.pusat.x}
                       cy={d.pusat.y}
                       r={d.radius}
-                      fill="rgba(124, 58, 237, 0.16)"
+                      fill="rgba(124, 58, 237, 0.12)"
                       stroke="#6d28d9"
-                      strokeWidth="3"
+                      strokeWidth={Math.max(1.1, Math.min(2, d.radius * 0.25))}
                     />
-                  ))}
-                  {pertama ? (
-                    <text
-                      x={pertama.pusat.x - 12}
-                      y={Math.max(22, pertama.pusat.y - pertama.radius - 8)}
-                      fill="#4c1d95"
-                      fontSize="18"
-                      fontWeight="bold"
-                    >
-                      ID {kolom.kolomKe}
-                    </text>
-                  ) : null}
-                </g>
-              );
-            })}
+                  )),
+                )}
+              </g>
+            ) : null}
 
             {/* Pratinjau blok jawaban yang sedang disusun (biru terang) */}
             {pratinjauDraftJawaban.map((soal) =>
@@ -248,59 +241,65 @@ export function BubbleGridMarker({
                   r={pil.radius}
                   fill="rgba(37, 99, 235, 0.22)"
                   stroke="#1d4ed8"
-                  strokeWidth="3.5"
+                  strokeWidth={Math.max(1.8, Math.min(3.5, pil.radius * 0.28))}
                 />
               )),
             )}
 
-            {/* Pratinjau kolom identitas yang sedang disusun (biru terang) */}
-            {pratinjauDraftIdentitas?.digit.map((d) => (
-              <circle
-                key={`did-${d.label}`}
-                cx={d.pusat.x}
-                cy={d.pusat.y}
-                r={d.radius}
-                fill="rgba(37, 99, 235, 0.22)"
-                stroke="#1d4ed8"
-                strokeWidth="3.5"
-              />
-            ))}
+            {/* Pratinjau kisi nama (kolom x A-Z) yang sedang diatur */}
+            {pratinjauDraftNama.length > 0 ? (
+              <g>
+                {pratinjauDraftNama.map((kolom) =>
+                  kolom.digit.map((d) => (
+                    <circle
+                      key={`dn-${kolom.kolomKe}-${d.label}`}
+                      cx={d.pusat.x}
+                      cy={d.pusat.y}
+                      r={d.radius}
+                      fill="rgba(124, 58, 237, 0.18)"
+                      stroke="#6d28d9"
+                      strokeWidth={tebalGarisNama}
+                    />
+                  )),
+                )}
+              </g>
+            ) : null}
 
-            {/* Titik jangkar pertama */}
+            {/* Titik jangkar pertama (kiri atas: No. awal A atau Nama Kolom 1 huruf A) */}
             {titikPertamaAktif ? (
               <g>
                 <circle
                   cx={titikPertamaAktif.x}
                   cy={titikPertamaAktif.y}
-                  r={radiusAktif + 5}
+                  r={radiusAktif + 4}
                   fill="none"
                   stroke="#ea580c"
-                  strokeWidth="4"
+                  strokeWidth={mode === 'nama' ? 2.5 : 4}
                 />
                 <circle
                   cx={titikPertamaAktif.x}
                   cy={titikPertamaAktif.y}
-                  r="4"
+                  r={mode === 'nama' ? 2.5 : 4}
                   fill="#ea580c"
                 />
               </g>
             ) : null}
 
-            {/* Titik jangkar terakhir */}
+            {/* Titik jangkar terakhir (kanan bawah: No. akhir atau Nama Kolom terakhir huruf Z) */}
             {titikTerakhirAktif ? (
               <g>
                 <circle
                   cx={titikTerakhirAktif.x}
                   cy={titikTerakhirAktif.y}
-                  r={radiusAktif + 5}
+                  r={radiusAktif + 4}
                   fill="none"
                   stroke="#0284c7"
-                  strokeWidth="4"
+                  strokeWidth={mode === 'nama' ? 2.5 : 4}
                 />
                 <circle
                   cx={titikTerakhirAktif.x}
                   cy={titikTerakhirAktif.y}
-                  r="4"
+                  r={mode === 'nama' ? 2.5 : 4}
                   fill="#0284c7"
                 />
               </g>
