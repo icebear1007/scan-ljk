@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ikon Koreksi LJK">
+  <rect width="512" height="512" rx="112" fill="#1E3A8A" />
+  <rect x="116" y="88" width="280" height="336" rx="28" fill="#FFFFFF" />
+  <!-- Baris 1 -->
+  <circle cx="176" cy="164" r="20" fill="#CBD5E1" />
+  <circle cx="236" cy="164" r="20" fill="#1E3A8A" />
+  <circle cx="296" cy="164" r="20" fill="#CBD5E1" />
+  <circle cx="352" cy="164" r="20" fill="#CBD5E1" />
+  <!-- Baris 2 -->
+  <circle cx="176" cy="236" r="20" fill="#CBD5E1" />
+  <circle cx="236" cy="236" r="20" fill="#CBD5E1" />
+  <circle cx="296" cy="236" r="20" fill="#1E3A8A" />
+  <circle cx="352" cy="236" r="20" fill="#CBD5E1" />
+  <!-- Baris 3 -->
+  <circle cx="176" cy="308" r="20" fill="#1E3A8A" />
+  <circle cx="236" cy="308" r="20" fill="#CBD5E1" />
+  <circle cx="296" cy="308" r="20" fill="#CBD5E1" />
+  <circle cx="352" cy="308" r="20" fill="#CBD5E1" />
+  <!-- Lencana centang hijau -->
+  <circle cx="364" cy="356" r="76" fill="#16A34A" stroke="#FFFFFF" stroke-width="14" />
+  <path d="M332 356 L354 378 L398 332" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

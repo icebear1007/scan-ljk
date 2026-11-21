@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "flashmind": {
+      "command": "node",
+      "args": [
+        "d:\\#Project\\Scan LJK\\.agents\\flashmind\\server\\index.js"
+      ]
+    }
+  }
+}

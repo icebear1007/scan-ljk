@@ -1,0 +1,379 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    background-color: #f8fafc;
+    color: #0f172a;
+    scroll-padding-top: calc(4.25rem + env(safe-area-inset-top, 0px));
+    scroll-padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-block-size: 100dvh;
+    accent-color: #1e3a8a;
+    font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      sans-serif;
+    line-height: 1.5;
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p,
+  li {
+    text-wrap: pretty;
+  }
+
+  :where(a:any-link, button, input, select, textarea, [tabindex="0"]):focus-visible {
+    outline: 3px solid #1d4ed8;
+    outline-offset: 2px;
+  }
+
+  dialog:modal {
+    overscroll-behavior: contain;
+  }
+
+  dialog::backdrop {
+    background-color: rgb(15 23 42 / 0.55);
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+
+  input[type="checkbox"][switch] {
+    accent-color: #1e3a8a;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  input[type="checkbox"][switch]:focus-visible {
+    outline: 3px solid #1d4ed8;
+    outline-offset: 4px;
+  }
+
+  @supports not (accent-color: #1e3a8a) {
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 9999px;
+      background: #1e3a8a;
+      margin-top: -8px;
+      cursor: pointer;
+    }
+  }
+}
+
+.safe-top-header {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}
+
+.safe-bottom-nav {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+}
+
+.main-with-bottom-nav {
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}
+
+.drag-handle {
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.drag-handle.dragging {
+  cursor: grabbing;
+}
+
+.kunci-tablist {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 2px solid #e2e8f0;
+  gap: 0.25rem;
+}
+
+.kunci-tab {
+  position: relative;
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+
+.kunci-tab[aria-selected="true"] {
+  color: #1e3a8a;
+  background-color: #eff6ff;
+}
+
+.kunci-tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -2px;
+  border-block-end: 3px solid #1e3a8a;
+}
+
+.rekap-table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  container-type: inline-size;
+}
+
+.rekap-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  --label-kelas: "Kelas";
+  --label-benar: "Benar";
+  --label-salah: "Salah";
+  --label-kosong: "Kosong";
+  --label-nilai: "Nilai";
+  --label-aksi: "Tindakan";
+}
+
+.rekap-table thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+}
+
+.rekap-table tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background-color: #ffffff;
+}
+
+@container (width < 520px) {
+  .rekap-table,
+  .rekap-table thead,
+  .rekap-table tbody,
+  .rekap-table tr,
+  .rekap-table th,
+  .rekap-table td {
+    display: block;
+  }
+
+  .rekap-table thead {
+    display: none;
+  }
+
+  .rekap-table tbody tr {
+    margin-block-end: 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 1rem;
+    background-color: #ffffff;
+    overflow: hidden;
+  }
+
+  .rekap-table tbody th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.75rem 0.875rem;
+    text-align: left;
+  }
+
+  .rekap-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.875rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .rekap-table tbody td:last-child {
+    border-bottom: 0;
+    padding-top: 0.625rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .rekap-table tbody td:nth-child(2)::before {
+    content: var(--label-kelas) ": ";
+    font-weight: 700;
+    color: #475569;
+  }
+
+  .rekap-table tbody td:nth-child(3)::before {
+    content: var(--label-benar) ": ";
+    font-weight: 700;
+    color: #475569;
+  }
+
+  .rekap-table tbody td:nth-child(4)::before {
+    content: var(--label-salah) ": ";
+    font-weight: 700;
+    color: #475569;
+  }
+
+  .rekap-table tbody td:nth-child(5)::before {
+    content: var(--label-kosong) ": ";
+    font-weight: 700;
+    color: #475569;
+  }
+
+  .rekap-table tbody td:nth-child(6)::before {
+    content: var(--label-nilai) ": ";
+    font-weight: 700;
+    color: #475569;
+  }
+
+  .rekap-table tbody td:nth-child(7)::before {
+    content: var(--label-aksi) ": ";
+    font-weight: 700;
+    color: #475569;
+  }
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+@property --arc-start {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --arc-end {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --progress-dash-animation {
+  syntax: "*";
+  inherits: false;
+  initial-value: , progress-dash 3s ease-in-out infinite;
+}
+
+progress.loading-spinner:indeterminate::-webkit-progress-bar,
+progress.loading-spinner:indeterminate::-webkit-progress-value,
+progress.loading-spinner:indeterminate::-moz-progress-bar {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate {
+  --_from: calc(90deg + var(--arc-start, 0deg));
+  --_to: calc(90deg + var(--arc-end, 158deg));
+  --size: 36px;
+  --thickness: 4px;
+  --spinner-color: #1e3a8a;
+  --track-color: #cbd5e1;
+  --spinner-duration: 1.4s;
+  --_used-spinner-duration: var(--spinner-duration);
+
+  position: relative;
+  display: inline-block;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  appearance: none;
+  background: conic-gradient(
+      from var(--_from),
+      var(--spinner-color) calc(var(--_to) - var(--_from)),
+      transparent 0
+    )
+    var(--track-color);
+
+  animation:
+    progress-spin var(--_used-spinner-duration) linear infinite
+    var(--progress-dash-animation, );
+}
+
+@supports (background-clip: border-area) {
+  progress.loading-spinner:indeterminate {
+    background-clip: border-area;
+    border: var(--thickness) solid transparent;
+    background-origin: border-box;
+  }
+}
+
+@supports not (background-clip: border-area) {
+  progress.loading-spinner:indeterminate {
+    --clip-boundary: calc(100% - var(--thickness));
+    mask-image: radial-gradient(
+      farthest-side,
+      transparent var(--clip-boundary),
+      black var(--clip-boundary)
+    );
+    border: 0;
+  }
+}
+
+@media (forced-colors: active) {
+  progress.loading-spinner:indeterminate {
+    forced-color-adjust: none;
+    --spinner-color: CanvasText;
+    --track-color: Canvas;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  progress.loading-spinner:indeterminate {
+    --_used-spinner-duration: 6s;
+    --progress-dash-animation: ;
+    --arc-end: 158deg;
+  }
+}
+
+@keyframes progress-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+@keyframes progress-dash {
+  from {
+    --arc-start: 0deg;
+    --arc-end: 3deg;
+  }
+  50% {
+    --arc-start: 100deg;
+    --arc-end: 358deg;
+  }
+  to {
+    --arc-start: 360deg;
+    --arc-end: 363deg;
+  }
+}
