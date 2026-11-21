@@ -40,7 +40,7 @@ function PratinjauMini({ blob, nama }: { blob?: Blob; nama: string }) {
     <img
       src={url}
       alt={`Contoh lembar ${nama}`}
-      className="h-16 w-12 shrink-0 rounded-xl border border-slate-200 object-cover"
+      className="h-16 w-16 shrink-0 rounded-xl border border-slate-200 bg-slate-100 object-contain"
     />
   );
 }

@@ -36,7 +36,10 @@ import {
   simpanTemplateBaru,
   validasiCakupanBlokJawaban,
 } from '../db/templates.ts';
-import { HURUF_PILIHAN } from '../omr/geometry.ts';
+import {
+  hitungUkuranStandarDariSudut,
+  HURUF_PILIHAN,
+} from '../omr/geometry.ts';
 import { formatDetik } from '../utils/kesehatanAplikasi.ts';
 import {
   bacaLjkDiWorker,
@@ -117,7 +120,7 @@ export function BuatTemplatePage({
   const [jenisPenanda, setJenisPenanda] = useState<JenisPenanda>(
     templateAwal?.jenisPenanda ?? 'penanda-sudut',
   );
-  const [ukuranStandar] = useState<UkuranStandar>(
+  const [ukuranStandar, setUkuranStandar] = useState<UkuranStandar>(
     templateAwal?.ukuranStandar ?? UKURAN_STANDAR_AWAL,
   );
   const [galatLangkah1, setGalatLangkah1] = useState<{
@@ -316,7 +319,6 @@ export function BuatTemplatePage({
 
       const hasilDeteksi = await deteksiKertasDiWorker(gambarRgba, {
         jenisPenanda,
-        ukuranStandar,
         sertakanGambarLurus: false,
       });
 
@@ -408,9 +410,10 @@ export function BuatTemplatePage({
     setGalatUmum(null);
     setPesanProses('Sedang meluruskan kertas LJK...');
     try {
+      const ukuranBaru = hitungUkuranStandarDariSudut(sudut);
       const hasil = await deteksiKertasDiWorker(fotoMentahRgba, {
         jenisPenanda,
-        ukuranStandar,
+        ukuranStandar: ukuranBaru,
         sudutManual: sudut,
         sertakanGambarLurus: true,
       });
@@ -419,6 +422,58 @@ export function BuatTemplatePage({
         throw new Error(
           'Posisi 4 sudut belum valid. Pastikan keempat sudut membentuk kotak kertas yang wajar.',
         );
+      }
+
+      // Jika proporsi kertas berubah dibanding sebelumnya, skalakan blok yang sudah ada agar tetap di dalam gambar
+      if (
+        ukuranBaru.lebar !== ukuranStandar.lebar ||
+        ukuranBaru.tinggi !== ukuranStandar.tinggi
+      ) {
+        const skalaX = ukuranBaru.lebar / Math.max(1, ukuranStandar.lebar);
+        const skalaY = ukuranBaru.tinggi / Math.max(1, ukuranStandar.tinggi);
+        const skalaR = Math.min(skalaX, skalaY);
+
+        setBlokJawaban((prev) =>
+          prev.map((b) => ({
+            ...b,
+            titikBulatanPertama: {
+              x: Math.round(b.titikBulatanPertama.x * skalaX),
+              y: Math.round(b.titikBulatanPertama.y * skalaY),
+            },
+            titikBulatanTerakhir: {
+              x: Math.round(b.titikBulatanTerakhir.x * skalaX),
+              y: Math.round(b.titikBulatanTerakhir.y * skalaY),
+            },
+            radiusBulatan: Math.max(5, Math.round(b.radiusBulatan * skalaR)),
+          })),
+        );
+
+        setBlokIdentitas((prev) =>
+          prev.map((k) => ({
+            ...k,
+            titikDigitPertama: {
+              x: Math.round(k.titikDigitPertama.x * skalaX),
+              y: Math.round(k.titikDigitPertama.y * skalaY),
+            },
+            titikDigitTerakhir: {
+              x: Math.round(k.titikDigitTerakhir.x * skalaX),
+              y: Math.round(k.titikDigitTerakhir.y * skalaY),
+            },
+            radiusBulatan: Math.max(5, Math.round(k.radiusBulatan * skalaR)),
+          })),
+        );
+
+        setDraftJawaban((prev) => ({
+          ...prev,
+          titikPertama: null,
+          titikTerakhir: null,
+        }));
+        setDraftIdentitas((prev) => ({
+          ...prev,
+          titikPertama: null,
+          titikTerakhir: null,
+        }));
+        setUkuranStandar(ukuranBaru);
       }
 
       const blobJpeg = await ubahRgbaKeJpegBlob(hasil.gambarLurus, 0.84);
@@ -1066,7 +1121,7 @@ export function BuatTemplatePage({
               <img
                 src={fotoLurusUrl}
                 alt="Pratinjau foto LJK kosong yang tersimpan"
-                className="mx-auto max-h-52 rounded-lg border border-emerald-300"
+                className="mx-auto max-h-52 max-w-full rounded-lg border border-emerald-300 object-contain"
               />
               <button
                 type="button"
@@ -1317,7 +1372,7 @@ export function BuatTemplatePage({
               <input
                 id="radius-bulatan-jawaban"
                 type="range"
-                min={8}
+                min={5}
                 max={28}
                 step={1}
                 value={draftJawaban.radiusBulatan}
@@ -1531,7 +1586,7 @@ export function BuatTemplatePage({
               <input
                 id="radius-bulatan-id"
                 type="range"
-                min={7}
+                min={5}
                 max={22}
                 step={1}
                 value={draftIdentitas.radiusBulatan}

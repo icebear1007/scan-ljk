@@ -136,20 +136,21 @@ export function hentikanWorker(): void {
 }
 
 /**
- * Mengubah file foto (dari kamera/galeri) ke data RGBA dengan ukuran lebar
- * maksimal 1600 piksel agar pemrosesan cepat dan hemat memori HP.
+ * Mengubah file foto (dari kamera/galeri) ke data RGBA dengan ukuran sisi terpanjang
+ * maksimal 1600 piksel (mempertahankan rasio asli) agar cepat dan hemat memori HP.
  */
 export async function ubahFileGambarKeRgba(
   file: Blob,
-  lebarMaks = 1600,
+  sisiMaks = 1600,
 ): Promise<GambarMentahRgba> {
   const bitmap = await createImageBitmap(file);
   try {
     let lebar = bitmap.width;
     let tinggi = bitmap.height;
-    if (lebar > lebarMaks) {
-      const skala = lebarMaks / lebar;
-      lebar = lebarMaks;
+    const sisiTerpanjang = Math.max(lebar, tinggi);
+    if (sisiTerpanjang > sisiMaks) {
+      const skala = sisiMaks / sisiTerpanjang;
+      lebar = Math.max(1, Math.round(lebar * skala));
       tinggi = Math.max(1, Math.round(tinggi * skala));
     }
 

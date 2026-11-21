@@ -108,7 +108,7 @@ export function buatFotoContohLjkDenganOpenCv(
 ): GambarMentahRgba {
   const W = template.ukuranStandar.lebar;
   const H = template.ukuranStandar.tinggi;
-  const marginKertas = 54;
+  const marginKertas = opsi.tanpaPenandaSudut ? 0 : 54;
   const ukuranPenanda = 36;
   const lembarW = W + marginKertas * 2;
   const lembarH = H + marginKertas * 2;
@@ -183,23 +183,25 @@ export function buatFotoContohLjkDenganOpenCv(
         const cy = Math.round(marginKertas + pil.pusat.y + geserY);
         const r = Math.round(pil.radius);
 
-        // Garis pinggir bulatan LJK
+        // Garis pinggir bulatan LJK (ketebalan menyesuaikan ukuran bulatan)
         cv.circle(
           lembar,
           new cv.Point(cx, cy),
           r,
           new cv.Scalar(85, 85, 85, 255),
-          2,
+          r <= 11 ? 1 : 2,
         );
 
-        // Huruf tipis tercetak di tengah bulatan (seperti LJK sekolah asli)
+        // Huruf tipis tercetak di tengah bulatan (skala mengikuti radius bulatan)
+        const skalaHuruf = Math.max(0.24, Number((r * 0.028).toFixed(2)));
+        const geserHuruf = Math.max(3, Math.round(r * 0.33));
         cv.putText(
           lembar,
           pil.label,
-          new cv.Point(cx - 5, cy + 5),
+          new cv.Point(cx - geserHuruf, cy + geserHuruf),
           cv.FONT_HERSHEY_SIMPLEX,
-          0.42,
-          new cv.Scalar(145, 145, 145, 255),
+          skalaHuruf,
+          new cv.Scalar(160, 160, 160, 255),
           1,
         );
 
@@ -265,8 +267,9 @@ export function buatFotoContohLjkDenganOpenCv(
     }
 
     // 4. Tempatkan kertas di atas latar meja gelap dengan kemiringan & perspektif
-    const kanvasW = 1280;
-    const kanvasH = 1680;
+    const mendatar = W > H;
+    const kanvasW = mendatar ? 1680 : 1280;
+    const kanvasH = mendatar ? 1280 : 1680;
     const kanvas = new cv.Mat(
       kanvasH,
       kanvasW,
@@ -278,7 +281,11 @@ export function buatFotoContohLjkDenganOpenCv(
       const rad = ((opsi.kemiringanDerajat ?? 0) * Math.PI) / 180;
       const persp = opsi.perspektif ?? 0;
 
-      const skala = 0.84;
+      const skala = Math.min(
+        0.84,
+        (kanvasW * 0.84) / lembarW,
+        (kanvasH * 0.84) / lembarH,
+      );
       const hw = (lembarW * skala) / 2;
       const hh = (lembarH * skala) / 2;
       const cxKanvas = kanvasW / 2;

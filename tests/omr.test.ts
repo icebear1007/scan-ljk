@@ -11,7 +11,10 @@ import {
   hitungPenilaianDariBacaan,
   putuskanJawabanSatuNomor,
 } from '../src/omr/decision.ts';
-import { hitungPosisiSemuaSoal } from '../src/omr/geometry.ts';
+import {
+  hitungPosisiSemuaSoal,
+  hitungUkuranStandarDariSudut,
+} from '../src/omr/geometry.ts';
 import {
   KUNCI_CONTOH_40_SOAL,
   TEMPLATE_CONTOH_40_SOAL,
@@ -342,5 +345,86 @@ describe('Mesin Pembaca OpenCV.js (Alur Penuh)', () => {
     assert.ok(
       hasilBayangan.peringatan.some((p) => p.kode === 'berbayang-kuat'),
     );
+  });
+
+  it('mempertahankan proporsi asli kertas mendatar (landscape) tanpa gepeng', () => {
+    // 1. Uji rumus hitungUkuranStandarDariSudut untuk mendatar, tegak, dan persegi
+    const ukuranMendatar = hitungUkuranStandarDariSudut({
+      kiriAtas: { x: 7, y: 2 },
+      kananAtas: { x: 1015, y: 12 },
+      kananBawah: { x: 1023, y: 710 },
+      kiriBawah: { x: 0, y: 713 },
+    });
+    assert.equal(ukuranMendatar.lebar, 1414);
+    assert.ok(
+      ukuranMendatar.tinggi >= 950 && ukuranMendatar.tinggi <= 1020,
+      `Tinggi kertas mendatar harus proporsional (~981), terukur ${ukuranMendatar.tinggi}`,
+    );
+
+    const ukuranTegak = hitungUkuranStandarDariSudut({
+      kiriAtas: { x: 0, y: 0 },
+      kananAtas: { x: 1000, y: 0 },
+      kananBawah: { x: 1000, y: 1414 },
+      kiriBawah: { x: 0, y: 1414 },
+    });
+    assert.deepEqual(ukuranTegak, { lebar: 1000, tinggi: 1414 });
+
+    // 2. Uji pelurusan & pembacaan penuh pada LJK mendatar (50 soal, 5 blok, 4 pilihan A-D)
+    const templateMendatar: TemplateLJK = {
+      id: 'uji-mendatar-50-soal',
+      nama: 'Uji LJK Mendatar 50 Soal (A-D)',
+      jumlahSoal: 50,
+      jumlahPilihan: 4,
+      ukuranStandar: { lebar: 1414, tinggi: 1000 },
+      jenisPenanda: 'tepi-kertas',
+      blokJawaban: Array.from({ length: 5 }, (_, idx) => ({
+        nomorAwal: idx * 10 + 1,
+        jumlahNomor: 10,
+        titikBulatanPertama: { x: 85 + idx * 150, y: 720 },
+        titikBulatanTerakhir: { x: 165 + idx * 150, y: 950 },
+        jumlahPilihan: 4,
+        radiusBulatan: 9,
+      })),
+      tanggalDibuat: '2026-11-21T00:00:00.000Z',
+      tanggalDiubah: '2026-11-21T00:00:00.000Z',
+    };
+
+    const kunci50 = Array.from(
+      { length: 50 },
+      (_, i) => ['A', 'B', 'C', 'D'][i % 4],
+    );
+    const fotoMendatar = buatFotoContohLjkDenganOpenCv(cv, templateMendatar, {
+      jawabanDiisi: kunci50,
+      tanpaPenandaSudut: true,
+      kemiringanDerajat: 2,
+      perspektif: 0.03,
+      bayangan: 25,
+    });
+
+    // Tanpa ukuranStandar paksa, deteksiDanLuruskanKertas harus otomatis menghasilkan gambar mendatar (lebar > tinggi)
+    const deteksi = deteksiDanLuruskanKertas(cv, fotoMendatar, {
+      jenisPenanda: 'tepi-kertas',
+      sertakanGambarLurus: true,
+    });
+    assert.equal(deteksi.berhasil, true);
+    assert.ok(
+      deteksi.gambarLurus &&
+        deteksi.gambarLurus.lebar > deteksi.gambarLurus.tinggi,
+      `Gambar lurus harus tetap mendatar, terukur ${deteksi.gambarLurus?.lebar}x${deteksi.gambarLurus?.tinggi}`,
+    );
+
+    // Pembacaan penuh pada template mendatar harus 100% akurat
+    const hasilBaca = bacaLjkDenganOpenCv(cv, fotoMendatar, {
+      template: templateMendatar,
+      pengaturan: PENGATURAN_AWAL,
+      kunciJawaban: kunci50,
+      sertakanGambarLurus: true,
+    });
+    assert.equal(hasilBaca.berhasil, true);
+    assert.equal(hasilBaca.perluFotoUlang, false);
+    assert.equal(hasilBaca.gambarLurus?.lebar, 1414);
+    assert.equal(hasilBaca.gambarLurus?.tinggi, 1000);
+    assert.equal(hasilBaca.ringkasanNilai?.benar, 50);
+    assert.equal(hasilBaca.ringkasanNilai?.nilai, 100);
   });
 });

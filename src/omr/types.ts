@@ -90,6 +90,7 @@ export interface HasilDeteksiKertas {
   metode: MetodeDeteksiKertas;
   sudut: EmpatSudut | null;
   kemiringanDerajat: number;
+  ukuranLurus?: TemplateLJK['ukuranStandar'];
   gambarLurus?: GambarMentahRgba;
   peringatan: PeringatanKualitas[];
   waktuProsesMs: number;
@@ -121,7 +122,8 @@ export interface OpsiBacaLJK {
 
 export interface OpsiDeteksiKertas {
   jenisPenanda: TemplateLJK['jenisPenanda'];
-  ukuranStandar: TemplateLJK['ukuranStandar'];
+  /** Jika dikosongkan, ukuran lurus dihitung otomatis mengikuti rasio asli kertas. */
+  ukuranStandar?: TemplateLJK['ukuranStandar'];
   sudutManual?: EmpatSudut;
   sertakanGambarLurus?: boolean;
 }

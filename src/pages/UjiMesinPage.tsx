@@ -172,7 +172,6 @@ export function UjiMesinPage() {
 
       const deteksi = await deteksiKertasDiWorker(gambarRgba, {
         jenisPenanda: jenisPenandaUji,
-        ukuranStandar: { lebar: 1000, tinggi: 1414 },
         sertakanGambarLurus: true,
       });
 

@@ -9,6 +9,7 @@ import {
   evaluasiGeometriSegiEmpat,
   hitungPosisiSemuaIdentitas,
   hitungPosisiSemuaSoal,
+  hitungUkuranStandarDariSudut,
   jarakTitik,
   urutkanEmpatSudut,
 } from './geometry.ts';
@@ -842,6 +843,8 @@ export function deteksiDanLuruskanKertas(
     }
 
     const sudutAsli = skalaSudut(sudutKerja, 1 / skalaKeKerja);
+    const ukuranTujuan =
+      opsi.ukuranStandar ?? hitungUkuranStandarDariSudut(sudutAsli);
     let gambarLurus: GambarMentahRgba | undefined;
 
     if (opsi.sertakanGambarLurus !== false) {
@@ -849,16 +852,16 @@ export function deteksiDanLuruskanKertas(
         cv,
         rgbaKerja,
         sudutKerja,
-        opsi.ukuranStandar.lebar,
-        opsi.ukuranStandar.tinggi,
+        ukuranTujuan.lebar,
+        ukuranTujuan.tinggi,
         pool,
       );
       const lurusGrayDeteksi = pool.catat(new cv.Mat());
       cv.cvtColor(lurusRgba, lurusGrayDeteksi, cv.COLOR_RGBA2GRAY);
       const cekBayangan = cekBayanganTidakMerata(
         lurusGrayDeteksi.data as Uint8Array,
-        opsi.ukuranStandar.lebar,
-        opsi.ukuranStandar.tinggi,
+        ukuranTujuan.lebar,
+        ukuranTujuan.tinggi,
       );
       if (cekBayangan.berbayangKuat) {
         peringatan.push({
@@ -876,6 +879,7 @@ export function deteksiDanLuruskanKertas(
       metode,
       sudut: sudutAsli,
       kemiringanDerajat: evalGeo.kemiringanDerajat,
+      ukuranLurus: ukuranTujuan,
       gambarLurus,
       peringatan,
       waktuProsesMs: Math.round(performance.now() - mulai),
@@ -989,6 +993,24 @@ export function bacaLjkDenganOpenCv(
         kode: 'kemiringan-berlebihan',
         pesan:
           'Posisi kertas tampak tidak sejajar, mohon foto ulang.',
+        perluFotoUlang: true,
+      });
+    }
+
+    // Periksa apakah orientasi foto (mendatar/tegak) bertolak belakang dengan template
+    const ukuranFotoKertas = hitungUkuranStandarDariSudut(sudutKerja);
+    const rasioTemplate =
+      template.ukuranStandar.lebar / Math.max(1, template.ukuranStandar.tinggi);
+    const rasioFoto =
+      ukuranFotoKertas.lebar / Math.max(1, ukuranFotoKertas.tinggi);
+    if (
+      (rasioTemplate > 1.15 && rasioFoto < 0.87) ||
+      (rasioTemplate < 0.87 && rasioFoto > 1.15)
+    ) {
+      peringatan.push({
+        kode: 'kemiringan-berlebihan',
+        pesan:
+          'Arah foto kertas berbeda dengan template (mendatar/tegak). Putar posisi HP atau kertas agar searah dengan template, lalu foto ulang.',
         perluFotoUlang: true,
       });
     }

@@ -3,6 +3,7 @@ import type {
   BlokJawaban,
   TemplateLJK,
   Titik,
+  UkuranStandar,
 } from '../types/ljk.ts';
 import type { EmpatSudut } from './types.ts';
 
@@ -131,6 +132,49 @@ export function urutkanEmpatSudut(titik: Titik[]): EmpatSudut {
 
 export function jarakTitik(a: Titik, b: Titik): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+/**
+ * Menghitung ukuran standar kertas lurus yang mempertahankan rasio asli
+ * (tegak/portrait, mendatar/landscape, maupun persegi) dari empat sudut kertas.
+ * Sisi terpanjang disetel ke `sisiMaks` (bawaan 1414 piksel) sehingga kertas A4
+ * tegak tetap 1000x1414 dan kertas A4 mendatar menjadi ~1414x1000 tanpa gepeng.
+ */
+export function hitungUkuranStandarDariSudut(
+  sudut: EmpatSudut,
+  sisiMaks = 1414,
+): UkuranStandar {
+  const lebarAtas = jarakTitik(sudut.kiriAtas, sudut.kananAtas);
+  const lebarBawah = jarakTitik(sudut.kiriBawah, sudut.kananBawah);
+  const tinggiKiri = jarakTitik(sudut.kiriAtas, sudut.kiriBawah);
+  const tinggiKanan = jarakTitik(sudut.kananAtas, sudut.kananBawah);
+
+  const lebarAsli = (lebarAtas + lebarBawah) / 2;
+  const tinggiAsli = (tinggiKiri + tinggiKanan) / 2;
+
+  if (
+    !Number.isFinite(lebarAsli) ||
+    !Number.isFinite(tinggiAsli) ||
+    lebarAsli < 10 ||
+    tinggiAsli < 10
+  ) {
+    return { lebar: 1000, tinggi: 1414 };
+  }
+
+  const rasio = Math.max(0.35, Math.min(3.0, lebarAsli / tinggiAsli));
+  const batas = Math.max(400, Math.round(sisiMaks));
+
+  if (rasio >= 1) {
+    return {
+      lebar: batas,
+      tinggi: Math.max(200, Math.round(batas / rasio)),
+    };
+  }
+
+  return {
+    lebar: Math.max(200, Math.round(batas * rasio)),
+    tinggi: batas,
+  };
 }
 
 export function luasSegiEmpat(sudut: EmpatSudut): number {
